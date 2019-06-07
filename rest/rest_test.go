@@ -25,11 +25,12 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	rows := sqlmock.NewRows([]string{"country_code"}).AddRow("7")
+	rows_ru := sqlmock.NewRows([]string{"country_code"}).AddRow("7")
+	rows_us := sqlmock.NewRows([]string{"country_code"}).AddRow("1")
 
-	//mock.ExpectQuery("^select country_code from phone join names on names.country_letter=phone.country_letter where names.country_name='russia'$").WillReturnResult('7')
-	mock.ExpectQuery("^select country_code from phone join names on names.country_letter=phone.country_letter").WithArgs("russia").WillReturnRows(rows)
+	mock.ExpectQuery("^select country_code from phone join names on names.country_letter=phone.country_letter").WithArgs("russia").WillReturnRows(rows_ru)
 	mock.ExpectQuery("^select country_code from phone join names on names.country_letter=phone.country_letter").WithArgs("mordor").WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery("^select country_code from phone join names on names.country_letter=phone.country_letter").WithArgs("united states").WillReturnRows(rows_us)
 	a.Initialize(db)
 
 	code := m.Run()
@@ -64,6 +65,21 @@ func TestNotFound(t *testing.T) {
 
 	if m["status"] != "Resource not found." {
 		t.Errorf("Expected status  to be 'Resource not found.'. Got '%v'", m["status"])
+	}
+
+}
+
+func TestCapitalLetter(t *testing.T) {
+
+	req, _ := http.NewRequest("GET", "/code/United States", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusOK, response.Code)
+	var m map[string]interface{}
+	json.Unmarshal(response.Body.Bytes(), &m)
+
+	if m["tel_code"] != "1" {
+		t.Errorf("Expected tel_code  to be '1'. Got '%v'", m["tel_code"])
 	}
 
 }

@@ -60,3 +60,32 @@ func main() {
 	a.Run(":8080")
 
 }
+//проверка  конфига
+func checkConfig() (*viper.Viper, error) {
+	v := viper.New()
+	v.AutomaticEnv()
+	//
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	log.Println(viper.GetString("REST_USER"))
+	if !viper.IsSet("REST_USER") {
+		log.Fatal("missing REST_USER")
+	} 
+	if !viper.IsSet("REST_PASSWORD") {
+		log.Fatal("missing REST_PASSWORD")
+	} 
+	if !viper.IsSet("REST_DBNAME") {
+		log.Fatal("missing REST_DBNAME")
+	} 
+	if !viper.IsSet("REST_HOST") {
+		log.Fatal("missing REST_HOST")
+	} 
+	if !viper.IsSet("REST_PORT") {
+		log.Fatal("missing REST_PORT")
+	} 
+	
+	return v, err
+}

@@ -1,0 +1,20 @@
+version: '3.4'
+
+services:
+  postgres:
+    network_mode: host
+    build:
+      context: postgres/
+    image: postgres_rest
+    ports:
+      - "5432:5432"
+  rest:
+    network_mode: host
+    build:
+      context: rest/
+    image: rest_country
+    ports:
+      - "8080:8080"
+    depends_on:
+      - "postgres"
+  

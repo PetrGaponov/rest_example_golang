@@ -22,5 +22,10 @@ RUN mkdir -p /opt/rest/
 RUN cp /usr/share/zoneinfo/Europe/Moscow /etc/localtime
 RUN echo "Europe/Moscow" >  /etc/timezone
 COPY --from=builder /opt/rest/* /opt/rest/
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.5.0/wait /wait
+RUN chmod +x /wait
+## Launch the wait tool and then your application
 WORKDIR /opt/rest/
-ENTRYPOINT ["/opt/rest/rest"]
+CMD /wait && /opt/rest/rest
+##WORKDIR /opt/rest/
+##ENTRYPOINT ["/opt/rest/rest"]

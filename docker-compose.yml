@@ -15,6 +15,6 @@ services:
     image: rest_country
     ports:
       - "8080:8080"
-    depends_on:
-      - "postgres"
-  
+    environment:
+      WAIT_HOSTS: postgres:5432
+      WAIT_AFTER_HOSTS: 2

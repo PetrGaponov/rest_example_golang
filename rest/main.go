@@ -12,41 +12,15 @@ func main() {
 	var user, hostname, password, dbname string
 	var port int
 
-	viper.AutomaticEnv() //это  нужно чтобы иметь  доступ к ENV  через viper
-	err := godotenv.Load()
+	v, err := checkConfig()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		panic(err)
 	}
-
-	log.Println(viper.GetString("REST_USER"))
-	if !viper.IsSet("REST_USER") {
-		log.Fatal("missing REST_USER")
-	} else {
-		user = viper.GetString("REST_USER")
-	}
-	if !viper.IsSet("REST_PASSWORD") {
-		log.Fatal("missing REST_PASSWORD")
-	} else {
-		password = viper.GetString("REST_PASSWORD")
-	}
-	if !viper.IsSet("REST_DBNAME") {
-		log.Fatal("missing REST_DBNAME")
-	} else {
-		dbname = viper.GetString("REST_DBNAME")
-
-	}
-	if !viper.IsSet("REST_HOST") {
-		log.Fatal("missing REST_HOST")
-	} else {
-		hostname = viper.GetString("REST_HOST")
-
-	}
-	if !viper.IsSet("REST_PORT") {
-		log.Fatal("missing REST_PORT")
-	} else {
-		port = viper.GetInt("REST_PORT")
-
-	}
+	user = v.GetString("REST_USER")
+	password = v.GetString("REST_PASSWORD")
+	dbname = v.GetString("REST_DBNAME")
+	hostname = v.GetString("REST_HOST")
+	port = v.GetInt("REST_PORT")
 	a := App{}
 	//InitDb(user, password, dbname, host string, port int)* sql.DB, error
 	//db, err := InitDb("rtk", "rtk", "rtk", "localhost", 5432)
@@ -56,36 +30,43 @@ func main() {
 	}
 	defer db.Close()
 	a.Initialize(db)
+	log.Println("Loading data...")
+	err = UpdateData(a.DB) //load data
+	if err != nil {
+		log.Fatal("Can not load data!", err)
+	} else {
+		log.Println("Success load data")
+	}
 
 	a.Run(":8080")
 
 }
-//проверка  конфига
+
+//check config func
 func checkConfig() (*viper.Viper, error) {
 	v := viper.New()
-	v.AutomaticEnv()
+	v.AutomaticEnv() //for access to ENV
 	//
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-
-	log.Println(viper.GetString("REST_USER"))
-	if !viper.IsSet("REST_USER") {
+	log.Println(v.GetString("REST_USER"))
+	if !v.IsSet("REST_USER") {
 		log.Fatal("missing REST_USER")
-	} 
-	if !viper.IsSet("REST_PASSWORD") {
+	}
+	if !v.IsSet("REST_PASSWORD") {
 		log.Fatal("missing REST_PASSWORD")
-	} 
-	if !viper.IsSet("REST_DBNAME") {
+	}
+	if !v.IsSet("REST_DBNAME") {
 		log.Fatal("missing REST_DBNAME")
-	} 
-	if !viper.IsSet("REST_HOST") {
+	}
+	if !v.IsSet("REST_HOST") {
 		log.Fatal("missing REST_HOST")
-	} 
-	if !viper.IsSet("REST_PORT") {
+	}
+	if !v.IsSet("REST_PORT") {
 		log.Fatal("missing REST_PORT")
-	} 
-	
+	}
+
 	return v, err
 }

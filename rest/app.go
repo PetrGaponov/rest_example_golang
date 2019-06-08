@@ -103,7 +103,6 @@ func (a *App) Initialize(db *sql.DB) {
 	})
 	//
 	a.Router.Route("/code/{country}", func(r chi.Router) { //
-		fmt.Println("in router")
 		r.Mount("/", GetRouter(a))
 	})
 

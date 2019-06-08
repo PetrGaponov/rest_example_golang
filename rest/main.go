@@ -21,17 +21,20 @@ func main() {
 	dbname = v.GetString("REST_DBNAME")
 	hostname = v.GetString("REST_HOST")
 	port = v.GetInt("REST_PORT")
-	a := App{}
+
 	//InitDb(user, password, dbname, host string, port int)* sql.DB, error
 	//db, err := InitDb("rtk", "rtk", "rtk", "localhost", 5432)
-	db, err := InitDb(user, password, dbname, hostname, port)
+	pg := &PostgresDB{}
+	db, err := InitDbPostgres(user, password, dbname, hostname, port)
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
+	a := App{Model: pg}
+	//a.Model = pg
 	a.Initialize(db)
 	log.Println("Loading data...")
-	err = UpdateData(a.DB) //load data
+	err = pg.UpdateData(a.DB) //load data
 	if err != nil {
 		log.Fatal("Can not load data!", err)
 	} else {

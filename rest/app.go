@@ -54,6 +54,7 @@ func (a *SuccessResponse) Render(w http.ResponseWriter, r *http.Request) error {
 //
 
 type App struct { //our  APP
+	Model  SQLDatabase
 	Router *chi.Mux
 	DB     *sql.DB
 }
@@ -68,25 +69,6 @@ type ErrResponse struct {
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	render.Status(r, e.HTTPStatusCode)
 	return nil
-}
-
-//we can  mock  this  func in tests for db access
-func InitDb(user, password, dbname, host string, port int) (*sql.DB, error) {
-	dbinfo := fmt.Sprintf("user=%s host=%s  port=%d  password=%s dbname=%s sslmode=disable",
-		user, host, port, password, dbname)
-	db, err := sql.Open("postgres", dbinfo)
-	if err != nil {
-		return nil, errors.Wrap(errors.New("Can not open database"), err.Error())
-	}
-	db.SetConnMaxLifetime(10 * time.Minute) //сколько живут сессии
-	db.SetMaxIdleConns(11)                  // максимальное колличество  готовых  соединений
-	err = db.Ping()                         //check connect
-	if err != nil {
-		return nil, errors.Wrap(errors.New("Can not connect to database"), err.Error())
-	}
-
-	return db, nil
-
 }
 
 func (a *App) Initialize(db *sql.DB) {
@@ -140,7 +122,7 @@ func (a *App) GetCountry(w http.ResponseWriter, r *http.Request) { //делае�
 			return
 		}
 		country = space.ReplaceAllString(country, " ")
-		res, err := FindCountry(a.DB, country)
+		res, err := a.Model.FindCountry(a.DB, country)
 		if err != nil || res == "" { // for some countries in database (South Georgia and the South Sandwich Islands) code is empty ("") we shell return not found/
 			render.Render(w, r, ErrNotFound) //
 			return
@@ -160,7 +142,7 @@ func (a *App) GetCountry(w http.ResponseWriter, r *http.Request) { //делае�
 func (a *App) ReloadData(w http.ResponseWriter, r *http.Request) { //
 	var answer = SuccessResponse{"Success", 200}
 	//response, _ := json.Marshal(answer)
-	err := UpdateData(a.DB)
+	err := a.Model.UpdateData(a.DB)
 	if err == nil {
 		render.Render(w, r, &answer) //
 		//return

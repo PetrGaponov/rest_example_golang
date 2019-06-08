@@ -2,9 +2,11 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"sort"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -15,13 +17,36 @@ const (
 	phoneUrl = "http://country.io/phone.json"
 )
 
-// type CountryCode struct {
-// 	CountryCode string
-// }
+type SQLDatabase interface { //this  functions may contains DB specific SQL query
+	UpdateData(db *sql.DB) error
+	FindCountry(db *sql.DB, countryName string) (string, error)
+}
 
-//var CountryCode string
+type PostgresDB struct {
+}
 
-func UpdateData(db *sql.DB) error {
+//we can  mock  this  func in tests for db access
+func InitDbPostgres(user, password, dbname, host string, port int) (*sql.DB, error) {
+	//Function  that  return  db  connect  to specific database
+	dbinfo := fmt.Sprintf("user=%s host=%s  port=%d  password=%s dbname=%s sslmode=disable",
+		user, host, port, password, dbname)
+	db, err := sql.Open("postgres", dbinfo) // our pull Postgres concurently safe!
+	if err != nil {
+		return nil, errors.Wrap(errors.New("Can not open database"), err.Error())
+	}
+	db.SetConnMaxLifetime(10 * time.Minute) //сколько живут сессии
+	db.SetMaxIdleConns(11)                  // максимальное колличество  готовых  соединений
+	err = db.Ping()                         //check connect
+	if err != nil {
+		return nil, errors.Wrap(errors.New("Can not connect to database"), err.Error())
+	}
+
+	return db, nil
+
+}
+
+//
+func (*PostgresDB) UpdateData(db *sql.DB) error {
 	// update    names
 
 	countryMap, err := GetRequest(namesUrl)
@@ -76,7 +101,7 @@ func UpdateData(db *sql.DB) error {
 	//end update
 }
 
-func FindCountry(db *sql.DB, countryName string) (string, error) {
+func (*PostgresDB) FindCountry(db *sql.DB, countryName string) (string, error) {
 	//var answer CountryCode
 	var countryCode string
 	sqlStatement := `select country_code from phone join names on names.country_letter=phone.country_letter where names.country_name=$1`

@@ -41,6 +41,7 @@ func main() {
 		log.Println("Success load data")
 	}
 
+	log.Println("Ready for requests")
 	a.Run(":8080")
 
 }

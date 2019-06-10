@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -14,6 +15,14 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/pkg/errors"
 )
+
+type AnyString struct{}
+
+// Match satisfies sqlmock.Argument interface
+func (a AnyString) Match(v driver.Value) bool {
+	_, ok := v.(string)
+	return ok
+}
 
 type FakeDB struct {
 }
@@ -38,6 +47,7 @@ func (*FakeDB) UpdateData(db *sql.DB) error {
 
 		if _, ok := countryMap[key].(string); ok {
 			//log.Println("index : ", strings.ToLower(key), " value : ", strings.ToLower(countryMap[key].(string)))
+			mock.ExpectExec("INSERT INTO names").WithArgs(AnyString{}, AnyString{}).WillReturnResult(sqlmock.NewResult(1, 1))
 			_, err = db.Exec("INSERT INTO names (country_letter, country_name) VALUES ($1, $2) ON CONFLICT (country_letter) DO UPDATE SET  country_letter = EXCLUDED.country_letter,	 country_name = EXCLUDED.country_name", key, strings.ToLower(countryMap[key].(string)))
 			if err != nil {
 				log.Println(errors.Cause(err))
@@ -62,6 +72,7 @@ func (*FakeDB) UpdateData(db *sql.DB) error {
 	for _, key := range names {
 		if _, ok := phoneMap[key].(string); ok {
 			//log.Println("index : ", strings.ToLower(key), " value : ", strings.ToLower(phoneMap[key].(string)))
+			mock.ExpectExec("INSERT INTO phone").WithArgs(AnyString{}, AnyString{}).WillReturnResult(sqlmock.NewResult(1, 1))
 			_, err = db.Exec("INSERT INTO phone (country_letter, country_code) VALUES ($1, $2) ON CONFLICT (country_letter) DO UPDATE SET  country_letter = EXCLUDED.country_letter, country_code = EXCLUDED.country_code", key, strings.ToLower(phoneMap[key].(string)))
 			if err != nil {
 				log.Println(errors.Cause(err))
@@ -95,12 +106,17 @@ func (*FakeDB) FindCountry(db *sql.DB, countryName string) (string, error) {
 }
 
 var a App
+var mock sqlmock.Sqlmock
+var rows_ru *sqlmock.Rows
+var rows_us *sqlmock.Rows
+var db *sql.DB
+var err error
 
 func TestMain(m *testing.M) {
 	fakeDB := &FakeDB{}
 
 	//db, err := InitDb("rtk", "rtk", "rtk", "localhost", 5432)
-	db, mock, err := sqlmock.New()
+	db, mock, err = sqlmock.New()
 	if err != nil {
 		panic("can not opendatabase")
 	}
@@ -109,13 +125,10 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
+	//expected  rows for  GET Country test
+	rows_ru = sqlmock.NewRows([]string{"country_code"}).AddRow("7")
+	rows_us = sqlmock.NewRows([]string{"country_code"}).AddRow("1")
 
-	rows_ru := sqlmock.NewRows([]string{"country_code"}).AddRow("7")
-	rows_us := sqlmock.NewRows([]string{"country_code"}).AddRow("1")
-
-	mock.ExpectQuery("^select country_code from phone join names on names.country_letter=phone.country_letter").WithArgs("russia").WillReturnRows(rows_ru)
-	mock.ExpectQuery("^select country_code from phone join names on names.country_letter=phone.country_letter").WithArgs("mordor").WillReturnError(sql.ErrNoRows)
-	mock.ExpectQuery("^select country_code from phone join names on names.country_letter=phone.country_letter").WithArgs("united states").WillReturnRows(rows_us)
 	a.Initialize(db)
 
 	code := m.Run()
@@ -124,6 +137,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetCountry(t *testing.T) {
+	mock.ExpectQuery("^select country_code from phone join names on names.country_letter=phone.country_letter").WithArgs("russia").WillReturnRows(rows_ru)
 
 	req, _ := http.NewRequest("GET", "/code/russia", nil)
 	response := executeRequest(req)
@@ -140,6 +154,7 @@ func TestGetCountry(t *testing.T) {
 
 //
 func TestNotFound(t *testing.T) {
+	mock.ExpectQuery("^select country_code from phone join names on names.country_letter=phone.country_letter").WithArgs("mordor").WillReturnError(sql.ErrNoRows)
 
 	req, _ := http.NewRequest("GET", "/code/Mordor", nil)
 	response := executeRequest(req)
@@ -155,6 +170,7 @@ func TestNotFound(t *testing.T) {
 }
 
 func TestCapitalLetter(t *testing.T) {
+	mock.ExpectQuery("^select country_code from phone join names on names.country_letter=phone.country_letter").WithArgs("united states").WillReturnRows(rows_us)
 
 	req, _ := http.NewRequest("GET", "/code/United States", nil)
 	response := executeRequest(req)
@@ -182,4 +198,19 @@ func checkResponseCode(t *testing.T, expected, actual int) {
 	if expected != actual {
 		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
 	}
+}
+
+func TestUpdate(t *testing.T) {
+
+	req, _ := http.NewRequest("POST", "/reload", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusOK, response.Code)
+	var m map[string]interface{}
+	json.Unmarshal(response.Body.Bytes(), &m)
+
+	if m["status"] != "Success" {
+		t.Errorf("Expected status  to be 'Success'. Got '%v'", m["status"])
+	}
+
 }

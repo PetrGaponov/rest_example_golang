@@ -53,7 +53,7 @@ func (a *SuccessResponse) Render(w http.ResponseWriter, r *http.Request) error {
 
 //
 
-type App struct { //our  APP
+type App struct { //our  APP. Also  we can save our global logger here
 	Model  SQLDatabase
 	Router *chi.Mux
 	DB     *sql.DB
@@ -76,7 +76,7 @@ func (a *App) Initialize(db *sql.DB) {
 	//var err error
 	a.DB = db
 	a.Router = chi.NewRouter()
-	a.Router.Use(middleware.Logger)
+	a.Router.Use(middleware.Logger) //log our  request
 	a.Router.Use(middleware.Recoverer)
 	a.Router.Use(render.SetContentType(render.ContentTypeJSON))
 
@@ -106,9 +106,9 @@ func PostRouter(a *App) http.Handler {
 	return router
 }
 
-func (a *App) GetCountry(w http.ResponseWriter, r *http.Request) { //делаем  запрос по issue  выводим  структуру
+func (a *App) GetCountry(w http.ResponseWriter, r *http.Request) { //
 
-	//вначале разбираем параметры
+	//
 	var answer Answer
 	//
 	space := regexp.MustCompile(`\s+`) //remove  double  spaces  (may be wrong?)

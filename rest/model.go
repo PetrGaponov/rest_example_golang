@@ -65,7 +65,7 @@ func (*PostgresDB) UpdateData(db *sql.DB) error {
 
 		if _, ok := countryMap[key].(string); ok {
 			//log.Println("index : ", strings.ToLower(key), " value : ", strings.ToLower(countryMap[key].(string)))
-			_, err = db.Exec("INSERT INTO names (country_letter, country_name) VALUES ($1, $2) ON CONFLICT (country_letter) DO UPDATE SET  country_letter = EXCLUDED.country_letter,	 country_name = EXCLUDED.country_name", key, strings.ToLower(countryMap[key].(string)))
+			_, err = db.Exec("INSERT INTO names (country_letter, country_name) VALUES ($1, $2) ON CONFLICT (country_letter) DO UPDATE SET  country_letter = EXCLUDED.country_letter, country_name = EXCLUDED.country_name", key, strings.ToLower(countryMap[key].(string)))
 			if err != nil {
 				log.Println(errors.Cause(err))
 				return err

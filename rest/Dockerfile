@@ -13,7 +13,7 @@ RUN mkdir -p /opt/rest
 COPY Gopkg.toml Gopkg.lock ./
 RUN dep ensure --vendor-only
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix nocgo -o /opt/rest/rest *.go
-COPY .env config.json /opt/rest/
+COPY .env  /opt/rest/
 
 #FROM scratch
 FROM alpine:3.9 as prod_img
